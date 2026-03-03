@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CPP Debug Dojo</title>
+<title>C Debug Dojo</title>
 
-<!-- reduce caching so refresh gets newest build -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
@@ -50,7 +49,7 @@ small{ font-size:12px; color:#777; }
 <body>
 
 <div class="wrap">
-  <h1>CPP Debug Dojo</h1>
+  <h1>C Debug Dojo</h1>
   <div class="muted">Fix each snippet so output matches expected. Then press <b>Submit</b>. (Runs on Judge0 CE.)</div>
 
   <div class="top">
@@ -69,29 +68,38 @@ small{ font-size:12px; color:#777; }
 
 <script>
 const API = "https://ce.judge0.com";
-let CPP_ID = 54; // fallback
+let C_ID = 50; // fallback (often: C (GCC 9.x) == 50; but we also auto-detect)
 
-async function getCppLangId(){
+async function getCLangId(){
   try{
     const r = await fetch(API + "/languages", { cache: "no-store" });
     if(!r.ok) return;
     const langs = await r.json();
-    const cpp = langs.find(x => (x.name || "").toLowerCase().includes("c++"));
-    if(cpp?.id) CPP_ID = cpp.id;
+
+    // Prefer a plain C (GCC) entry, avoid "C++" and "C#" etc.
+    const c = langs.find(x => {
+      const n = (x.name || "").toLowerCase();
+      return n.includes("c (gcc") || (n === "c");
+    }) || langs.find(x => {
+      const n = (x.name || "").toLowerCase();
+      return n.startsWith("c (") && n.includes("gcc") && !n.includes("c++");
+    });
+
+    if(c?.id) C_ID = c.id;
   }catch{}
 }
 
 async function run(code, expected, cpuTime=1.0){
   const body = {
     source_code: code,
-    language_id: CPP_ID,
+    language_id: C_ID,
     expected_output: expected,
     redirect_stderr_to_stdout: true,
     cpu_time_limit: cpuTime,
     wall_time_limit: Math.max(2.0, cpuTime + 1.5),
 
-    // ✅ FIX: Judge0 CE here doesn't accept -std=c++20. Use gnu++17 (or gnu++2a if you prefer).
-    compiler_options: "-std=gnu++17 -w"
+    // C mode + disable warnings
+    compiler_options: "-std=c17 -w"
   };
 
   const r = await fetch(API + "/submissions?wait=true&base64_encoded=false", {
@@ -108,99 +116,119 @@ async function run(code, expected, cpuTime=1.0){
 }
 
 const challenges = [
-  // ✅ Updated #1 to have clear wrong/correct outputs and match your "0,1 vs 0.1" idea.
-  // Buggy (comma operator): prints "wrong"
-  // Fixed (0.1): prints "correct" (because v=2)
   { id: 1, title: "Comma operator vs decimal point (0,1 vs 0.1)", expected: "correct\n", cpu: 1.0,
-    starter: `#include <cstdio>
-int main(){
+    starter: `#include <stdio.h>
+
+int main(void){
   int v = 2;
 
   if (v == 0,1)
-    std::printf("wrong\\n");
+    printf("wrong\\n");
   else
-    std::printf("correct\\n");
+    printf("correct\\n");
 
   return 0;
 }`},
 
   { id: 2, title: "Pointer compare vs string content", expected: "same\n", cpu: 1.0,
-    starter: `#include <cstdio>
-#include <cstring>
-int main(){
+    starter: `#include <stdio.h>
+#include <string.h>
+
+int main(void){
   char buf[] = "hi";
   const char* s = buf;
+
   if (s == "hi")
-    std::printf("same\\n");
+    printf("same\\n");
+
   return 0;
 }`},
 
   { id: 3, title: "Chained comparisons", expected: "", cpu: 1.0,
-    starter: `#include <cstdio>
-int main(){
+    starter: `#include <stdio.h>
+
+int main(void){
   int x = 42;
+
   if (0 < x < 10)
-    std::printf("in range\\n");
+    printf("in range\\n");
+
   return 0;
 }`},
 
   { id: 4, title: "Assignment instead of comparison", expected: "", cpu: 1.0,
-    starter: `#include <cstdio>
-int main(){
+    starter: `#include <stdio.h>
+
+int main(void){
   int ok = 0;
+
   if (ok = 1)
-    std::printf("ok\\n");
+    printf("ok\\n");
+
   return 0;
 }`},
 
   { id: 5, title: "Missing braces", expected: "", cpu: 1.0,
-    starter: `#include <cstdio>
-int main(){
+    starter: `#include <stdio.h>
+
+int main(void){
   int isAdmin = 0;
+
   if (isAdmin)
-    std::printf("allowed\\n");
-    std::printf("logged\\n");
+    printf("allowed\\n");
+    printf("logged\\n");
+
   return 0;
 }`},
 
-  { id: 6, title: "sizeof(pointer) vs logical size", expected: "100\n", cpu: 1.0,
-    starter: `#include <cstdio>
-#include <cstdlib>
-int main(){
+  { id: 6, title: "sizeof(pointer) vs allocated size", expected: "400\n", cpu: 1.0,
+    starter: `#include <stdio.h>
+#include <stdlib.h>
+
+int main(void){
   size_t n = 100;
-  int* a = (int*)std::malloc(n * sizeof(int));
-  std::printf("%zu\\n", sizeof(a));
-  std::free(a);
+  int* a = (int*)malloc(n * sizeof(int));
+
+  printf("%zu\\n", sizeof(a));
+
+  free(a);
   return 0;
 }`},
 
   { id: 7, title: "memset on int array", expected: "1\n", cpu: 1.0,
-    starter: `#include <cstdio>
-#include <cstring>
-int main(){
+    starter: `#include <stdio.h>
+#include <string.h>
+
+int main(void){
   int arr[4];
-  std::memset(arr, 1, sizeof(arr));
-  std::printf("%d\\n", arr[0]);
+
+  memset(arr, 1, sizeof(arr));
+  printf("%d\\n", arr[0]);
+
   return 0;
 }`},
 
   { id: 8, title: "Returning pointer to local (dangling)", expected: "42\n", cpu: 1.0,
-    starter: `#include <cstdio>
-int* f(){
+    starter: `#include <stdio.h>
+
+int* f(void){
   int x = 42;
   return &x;
 }
-int main(){
+
+int main(void){
   int* p = f();
-  std::printf("%d\\n", *p);
+  printf("%d\\n", *p);
   return 0;
 }`},
 
   { id: 9, title: "Removing while iterating (skipped element)", expected: "0\n", cpu: 1.0,
-    starter: `#include <cstdio>
-int main(){
+    starter: `#include <stdio.h>
+
+int main(void){
   int v[] = {2,4,6,8};
   int n = 4;
+
   for (int i = 0; i < n; i++){
     if (v[i] % 2 == 0){
       for (int j = i; j < n - 1; j++)
@@ -209,18 +237,22 @@ int main(){
       i++; // bug: skips next element
     }
   }
-  std::printf("%d\\n", n);
+
+  printf("%d\\n", n);
   return 0;
 }`},
 
   { id: 10, title: "Reverse loop with size_t underflow", expected: "3\n2\n1\n", cpu: 0.7,
-    starter: `#include <cstdio>
-#include <cstddef>
-int main(){
+    starter: `#include <stdio.h>
+#include <stddef.h>
+
+int main(void){
   int v[] = {1,2,3};
   size_t n = sizeof(v)/sizeof(v[0]);
+
   for (size_t i = n - 1; i >= 0; --i)
-    std::printf("%d\\n", v[i]);
+    printf("%d\\n", v[i]);
+
   return 0;
 }`},
 ];
@@ -267,8 +299,8 @@ async function evaluateAll(){
   btn.disabled = true;
   document.getElementById("status").textContent = "Loading runtime…";
 
-  await getCppLangId();
-  document.getElementById("status").textContent = `Running (C++ id=${CPP_ID}, -std=gnu++17 -w)…`;
+  await getCLangId();
+  document.getElementById("status").textContent = `Running (C id=${C_ID}, -std=c17 -w)…`;
 
   const email = (document.getElementById("email").value || "").trim() || null;
   const started = new Date().toISOString();
@@ -329,8 +361,8 @@ ${msg || "(none)"}
     started_at: started,
     finished_at: new Date().toISOString(),
     judge0_base: API,
-    cpp_language_id: CPP_ID,
-    compiler_options: "-std=gnu++17 -w",
+    c_language_id: C_ID,
+    compiler_options: "-std=c17 -w",
     score: `${pass}/${challenges.length}`,
     results
   };
