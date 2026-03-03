@@ -275,7 +275,7 @@ function render(){
     div.className = "card";
     div.innerHTML = `
       <div class="row">
-        <div><b>${c.id}.)</b> ${esc(c.title)}</div>
+        <div><b>${c.id}.)</b> ${esc("")}</div>
         <span id="badge-${c.id}" class="pill">Not run</span>
       </div>
 
@@ -358,7 +358,7 @@ ${msg || "(none)"}
     }catch(e){
       document.getElementById("out-" + c.id).textContent = String(e?.message || e);
       setBadge(c.id, false, "ERROR");
-      results.push({ id:c.id, title:c.title, ok:false, status:"ERROR", error:String(e?.message || e) });
+      results.push({ id:c.id, title:"", ok:false, status:"ERROR", error:String(e?.message || e) });
     }
   }
 
