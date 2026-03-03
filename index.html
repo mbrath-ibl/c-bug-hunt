@@ -5,365 +5,343 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>CPP Debug Dojo</title>
 
+<!-- reduce caching so refresh gets newest build -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
 <style>
-:root {
-  --border:#e2e2e2;
-  --bg-dark:#0b1020;
-  --fg-dark:#e7e7e7;
-}
-
-body{
-  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  margin:20px;
-  background:#fafafa;
-}
-
-.wrap{
-  max-width:1100px;
-  margin:auto;
-}
-
-h1{
-  margin:0 0 6px;
-}
-
+:root { --border:#e2e2e2; --bg-dark:#0b1020; --fg-dark:#e7e7e7; }
+body{ font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:20px; background:#fafafa; }
+.wrap{ max-width:1100px; margin:auto; }
+h1{ margin:0 0 6px; }
 .muted{ color:#666; }
-
-.top{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:center;
-  margin:14px 0 20px;
-}
-
-input,button{
-  padding:10px 12px;
-  border-radius:10px;
-  border:1px solid var(--border);
-}
-
+.top{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:14px 0 20px; }
+input,button{ padding:10px 12px; border-radius:10px; border:1px solid var(--border); }
 button{ cursor:pointer; }
-
-.pill{
-  padding:4px 10px;
-  border-radius:999px;
-  border:1px solid var(--border);
-  font-size:12px;
-}
-
+.pill{ padding:4px 10px; border-radius:999px; border:1px solid var(--border); font-size:12px; }
 .ok{ background:#eaffea; border-color:#66cc66; }
 .bad{ background:#ffecec; border-color:#dd6666; }
-
-.card{
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:16px;
-  margin-bottom:16px;
-  background:white;
-}
-
-.row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns: minmax(0,1fr) 380px;
-  gap:16px;
-  margin-top:12px;
-  align-items:start;
-}
-
-@media (max-width:950px){
-  .grid{
-    grid-template-columns: 1fr;
-  }
-}
-
+.card{ border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:16px; background:white; }
+.row{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.grid{ display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:16px; margin-top:12px; align-items:start; }
+@media (max-width:980px){ .grid{ grid-template-columns: 1fr; } }
 textarea{
-  width:100%;
-  min-height:220px;
-  resize:vertical;
+  width:100%; min-height:220px; resize:vertical; box-sizing:border-box;
   font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-  font-size:13px;
-  padding:14px;
-  border-radius:12px;
-  border:1px solid var(--border);
-  box-sizing:border-box;
+  font-size:13px; padding:14px; border-radius:12px; border:1px solid var(--border);
 }
-
-.panel{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
+.panel{ display:flex; flex-direction:column; gap:10px; }
+.label{ font-size:12px; color:#777; }
 .box{
-  background:var(--bg-dark);
-  color:var(--fg-dark);
-  padding:12px;
-  border-radius:14px;
+  background:var(--bg-dark); color:var(--fg-dark);
+  padding:12px; border-radius:14px;
   font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-  font-size:12px;
-  overflow:auto;
-  max-height:140px;
-  white-space:pre;
+  font-size:12px; line-height:1.35;
+  overflow:auto; max-height:160px; white-space:pre;
 }
-
 .results{
-  background:var(--bg-dark);
-  color:var(--fg-dark);
-  padding:14px;
-  border-radius:16px;
-  white-space:pre-wrap;
-  margin-top:10px;
+  background:var(--bg-dark); color:var(--fg-dark);
+  padding:14px; border-radius:16px; white-space:pre-wrap; margin-top:10px;
 }
-
 small{ font-size:12px; color:#777; }
 </style>
 </head>
 <body>
 
 <div class="wrap">
-<h1>CPP Debug Dojo</h1>
-<div class="muted">Fix each snippet so output matches expected. Then press Submit.</div>
+  <h1>CPP Debug Dojo</h1>
+  <div class="muted">Fix each snippet so output matches expected. Then press <b>Submit</b>. (Runs on Judge0 CE.)</div>
 
-<div class="top">
-<input id="email" type="email" placeholder="candidate email (optional)"/>
-<button onclick="evaluateAll()">Submit</button>
-<button onclick="copyJSON()">Copy JSON</button>
-<span id="score" class="pill">Score: 0/10</span>
-<span id="status" class="muted"></span>
-</div>
+  <div class="top">
+    <input id="email" type="email" placeholder="candidate email (optional)"/>
+    <button id="submitBtn" onclick="evaluateAll()">Submit</button>
+    <button onclick="copyJSON()">Copy JSON</button>
+    <span id="score" class="pill">Score: 0/10</span>
+    <span id="status" class="muted"></span>
+  </div>
 
-<div id="challenges"></div>
+  <div id="challenges"></div>
 
-<h3>Results</h3>
-<div id="results" class="results">Submit to run…</div>
+  <h3>Results</h3>
+  <div id="results" class="results">Submit to run…</div>
 </div>
 
 <script>
-const API="https://ce.judge0.com";
-let CPP_ID=54;
+const API = "https://ce.judge0.com";
+let CPP_ID = 54; // fallback
 
-async function getLang(){
+async function getCppLangId(){
   try{
-    const r=await fetch(API+"/languages");
-    const j=await r.json();
-    const c=j.find(x=>x.name.toLowerCase().includes("c++"));
-    if(c) CPP_ID=c.id;
+    const r = await fetch(API + "/languages", { cache: "no-store" });
+    if(!r.ok) return;
+    const langs = await r.json();
+    const cpp = langs.find(x => (x.name || "").toLowerCase().includes("c++"));
+    if(cpp?.id) CPP_ID = cpp.id;
   }catch{}
 }
 
-async function run(code,expected,time=1){
-  const body={
-    source_code:code,
-    language_id:CPP_ID,
-    expected_output:expected,
-    redirect_stderr_to_stdout:true,
-    cpu_time_limit:time,
-    wall_time_limit:time+2
+async function run(code, expected, cpuTime=1.0){
+  const body = {
+    source_code: code,
+    language_id: CPP_ID,
+    expected_output: expected,
+    redirect_stderr_to_stdout: true,
+    cpu_time_limit: cpuTime,
+    wall_time_limit: Math.max(2.0, cpuTime + 1.5),
+
+    // ✅ key change: disable warnings + fix language standard
+    compiler_options: "-std=c++20 -w"
   };
 
-  const r=await fetch(API+"/submissions?wait=true&base64_encoded=false",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(body)
+  const r = await fetch(API + "/submissions?wait=true&base64_encoded=false", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
   });
 
+  if(!r.ok){
+    const t = await r.text().catch(()=> "");
+    throw new Error("Judge0 request failed: HTTP " + r.status + "\n" + t);
+  }
   return await r.json();
 }
 
-const challenges=[
-{
-id:1,
-expected:"",
-starter:`#include <cstdio>
+const challenges = [
+  { id: 1, title: "Comma operator in if-condition", expected: "", cpu: 1.0,
+    starter: `#include <cstdio>
 int main(){
- int v=2;
- if(v==0,1)
-   std::printf("run\\n");
-}`
-},
-{
-id:2,
-expected:"same\n",
-starter:`#include <cstdio>
-int main(){
- char buf[]="hi";
- const char* s=buf;
- if(s=="hi")
-   std::printf("same\\n");
-}`
-},
-{
-id:3,
-expected:"",
-starter:`#include <cstdio>
-int main(){
- int x=42;
- if(0<x<10)
-   std::printf("in range\\n");
-}`
-},
-{
-id:4,
-expected:"",
-starter:`#include <cstdio>
-int main(){
- int ok=0;
- if(ok=1)
-   std::printf("ok\\n");
-}`
-},
-{
-id:5,
-expected:"",
-starter:`#include <cstdio>
-int main(){
- int isAdmin=0;
- if(isAdmin)
-   std::printf("allowed\\n");
-   std::printf("logged\\n");
-}`
-},
-{
-id:6,
-expected:"100\n",
-starter:`#include <cstdio>
-#include <cstdlib>
-int main(){
- size_t n=100;
- int* a=(int*)std::malloc(n*sizeof(int));
- std::printf("%zu\\n",sizeof(a));
- std::free(a);
-}`
-},
-{
-id:7,
-expected:"1\n",
-starter:`#include <cstdio>
+  int v = 2;
+  if (v == 0,1)
+    std::printf("run\\n");
+  return 0;
+}`},
+
+  { id: 2, title: "Pointer compare vs string content", expected: "same\n", cpu: 1.0,
+    starter: `#include <cstdio>
 #include <cstring>
 int main(){
- int arr[4];
- std::memset(arr,1,sizeof(arr));
- std::printf("%d\\n",arr[0]);
-}`
-},
-{
-id:8,
-expected:"42\n",
-starter:`#include <cstdio>
+  char buf[] = "hi";
+  const char* s = buf;
+  if (s == "hi")
+    std::printf("same\\n");
+  return 0;
+}`},
+
+  { id: 3, title: "Chained comparisons", expected: "", cpu: 1.0,
+    starter: `#include <cstdio>
+int main(){
+  int x = 42;
+  if (0 < x < 10)
+    std::printf("in range\\n");
+  return 0;
+}`},
+
+  { id: 4, title: "Assignment instead of comparison", expected: "", cpu: 1.0,
+    starter: `#include <cstdio>
+int main(){
+  int ok = 0;
+  if (ok = 1)
+    std::printf("ok\\n");
+  return 0;
+}`},
+
+  { id: 5, title: "Missing braces", expected: "", cpu: 1.0,
+    starter: `#include <cstdio>
+int main(){
+  int isAdmin = 0;
+  if (isAdmin)
+    std::printf("allowed\\n");
+    std::printf("logged\\n");
+  return 0;
+}`},
+
+  { id: 6, title: "sizeof(pointer) vs logical size", expected: "100\n", cpu: 1.0,
+    starter: `#include <cstdio>
+#include <cstdlib>
+int main(){
+  size_t n = 100;
+  int* a = (int*)std::malloc(n * sizeof(int));
+  std::printf("%zu\\n", sizeof(a));
+  std::free(a);
+  return 0;
+}`},
+
+  { id: 7, title: "memset on int array", expected: "1\n", cpu: 1.0,
+    starter: `#include <cstdio>
+#include <cstring>
+int main(){
+  int arr[4];
+  std::memset(arr, 1, sizeof(arr));
+  std::printf("%d\\n", arr[0]);
+  return 0;
+}`},
+
+  { id: 8, title: "Returning pointer to local (dangling)", expected: "42\n", cpu: 1.0,
+    starter: `#include <cstdio>
 int* f(){
- int x=42;
- return &x;
+  int x = 42;
+  return &x;
 }
 int main(){
- int* p=f();
- std::printf("%d\\n",*p);
-}`
-},
-{
-id:9,
-expected:"0\n",
-starter:`#include <cstdio>
+  int* p = f();
+  std::printf("%d\\n", *p);
+  return 0;
+}`},
+
+  { id: 9, title: "Removing while iterating (skipped element)", expected: "0\n", cpu: 1.0,
+    starter: `#include <cstdio>
 int main(){
- int v[]={2,4,6,8};
- int n=4;
- for(int i=0;i<n;i++){
-   if(v[i]%2==0){
-     for(int j=i;j<n-1;j++)
-       v[j]=v[j+1];
-     n--;
-     i++;
-   }
- }
- std::printf("%d\\n",n);
-}`
-},
-{
-id:10,
-expected:"3\n2\n1\n",
-starter:`#include <cstdio>
+  int v[] = {2,4,6,8};
+  int n = 4;
+  for (int i = 0; i < n; i++){
+    if (v[i] % 2 == 0){
+      for (int j = i; j < n - 1; j++)
+        v[j] = v[j + 1];
+      n--;
+      i++; // bug: skips next element
+    }
+  }
+  std::printf("%d\\n", n);
+  return 0;
+}`},
+
+  { id: 10, title: "Reverse loop with size_t underflow", expected: "3\n2\n1\n", cpu: 0.7,
+    starter: `#include <cstdio>
 #include <cstddef>
 int main(){
- int v[]={1,2,3};
- size_t n=sizeof(v)/sizeof(v[0]);
- for(size_t i=n-1;i>=0;--i)
-   std::printf("%d\\n",v[i]);
-}`
-}
+  int v[] = {1,2,3};
+  size_t n = sizeof(v)/sizeof(v[0]);
+  for (size_t i = n - 1; i >= 0; --i)
+    std::printf("%d\\n", v[i]);
+  return 0;
+}`},
 ];
 
+function esc(s){
+  return (s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+}
+
 function render(){
- const root=document.getElementById("challenges");
- root.innerHTML="";
- challenges.forEach(c=>{
-   const div=document.createElement("div");
-   div.className="card";
-   div.innerHTML=`
-   <div class="row">
-     <div><b>${c.id}.)</b></div>
-     <span id="badge-${c.id}" class="pill">Not run</span>
-   </div>
-   <div class="grid">
-     <textarea id="code-${c.id}">${c.starter}</textarea>
-     <div class="panel">
-       <div><small>Expected output</small></div>
-       <div class="box">${c.expected || "(empty)"}</div>
-       <div><small>Last run output</small></div>
-       <div class="box" id="out-${c.id}">—</div>
-     </div>
-   </div>
-   `;
-   root.appendChild(div);
- });
+  const root = document.getElementById("challenges");
+  root.innerHTML = "";
+  for(const c of challenges){
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <div class="row">
+        <div><b>${c.id}.)</b> ${esc(c.title)}</div>
+        <span id="badge-${c.id}" class="pill">Not run</span>
+      </div>
+
+      <div class="grid">
+        <textarea id="code-${c.id}" spellcheck="false">${esc(c.starter)}</textarea>
+        <div class="panel">
+          <div class="label">Expected output</div>
+          <div class="box">${esc(c.expected === "" ? "(empty)" : c.expected)}</div>
+
+          <div class="label">Last run output / errors</div>
+          <div class="box" id="out-${c.id}">—</div>
+        </div>
+      </div>
+    `;
+    root.appendChild(div);
+  }
+}
+
+function setBadge(id, ok, text){
+  const b = document.getElementById("badge-" + id);
+  b.textContent = text;
+  b.className = "pill " + (ok ? "ok" : "bad");
 }
 
 async function evaluateAll(){
- document.getElementById("status").textContent="Running...";
- await getLang();
- let pass=0;
- const results=[];
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  document.getElementById("status").textContent = "Loading runtime…";
 
- for(const c of challenges){
-   const code=document.getElementById("code-"+c.id).value;
-   const badge=document.getElementById("badge-"+c.id);
-   badge.textContent="Running...";
-   const r=await run(code,c.expected);
-   const ok=r.status.description==="Accepted";
-   if(ok) pass++;
-   badge.textContent=ok?"PASS":"FAIL";
-   badge.className="pill "+(ok?"ok":"bad");
-   document.getElementById("out-"+c.id).textContent=
-     (r.stdout||"(empty)")+"\n\n"+(r.compile_output||"");
-   results.push({id:c.id,status:r.status.description});
- }
+  await getCppLangId();
+  document.getElementById("status").textContent = `Running (C++ id=${CPP_ID}, -std=c++20 -w)…`;
 
- document.getElementById("score").textContent=`Score: ${pass}/10`;
- document.getElementById("results").textContent=
- JSON.stringify({
-   email:document.getElementById("email").value||null,
-   score:`${pass}/10`,
-   results
- },null,2);
+  const email = (document.getElementById("email").value || "").trim() || null;
+  const started = new Date().toISOString();
 
- document.getElementById("status").textContent="Done";
+  let pass = 0;
+  const results = [];
+
+  for(const c of challenges){
+    setBadge(c.id, false, "Running…");
+    document.getElementById("out-" + c.id).textContent = "Running…";
+
+    const code = document.getElementById("code-" + c.id).value || "";
+
+    try{
+      const r = await run(code, c.expected, c.cpu);
+      const status = r?.status?.description || ("status_id=" + r?.status_id);
+      const ok = (status || "").toLowerCase() === "accepted";
+      if(ok) pass++;
+
+      const stdout = r.stdout ?? "";
+      const comp = r.compile_output ?? "";
+      const msg = r.message ?? "";
+      const time = r.time ?? "";
+      const mem  = r.memory ?? "";
+
+      document.getElementById("out-" + c.id).textContent =
+`Status: ${status}
+Time: ${time}s   Memory: ${mem} KB
+
+--- stdout ---
+${stdout || "(empty)"}
+
+--- compiler/runtime ---
+${comp || "(none)"}
+
+--- message ---
+${msg || "(none)"}
+`;
+      setBadge(c.id, ok, ok ? "PASS" : "FAIL");
+
+      results.push({
+        id: c.id,
+        title: c.title,
+        ok,
+        status,
+        time,
+        memory_kb: mem
+      });
+    }catch(e){
+      document.getElementById("out-" + c.id).textContent = String(e?.message || e);
+      setBadge(c.id, false, "ERROR");
+      results.push({ id:c.id, title:c.title, ok:false, status:"ERROR", error:String(e?.message || e) });
+    }
+  }
+
+  const payload = {
+    email,
+    started_at: started,
+    finished_at: new Date().toISOString(),
+    judge0_base: API,
+    cpp_language_id: CPP_ID,
+    compiler_options: "-std=c++20 -w",
+    score: `${pass}/${challenges.length}`,
+    results
+  };
+
+  document.getElementById("score").textContent = `Score: ${pass}/${challenges.length}`;
+  document.getElementById("results").textContent = JSON.stringify(payload, null, 2);
+  window.__LAST_PAYLOAD__ = payload;
+
+  document.getElementById("status").textContent = "Done.";
+  btn.disabled = false;
 }
 
 function copyJSON(){
- navigator.clipboard.writeText(
-   document.getElementById("results").textContent
- );
+  const txt = document.getElementById("results").textContent || "";
+  navigator.clipboard.writeText(txt);
 }
 
 render();
 </script>
-
 </body>
 </html>
