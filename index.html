@@ -90,8 +90,8 @@ async function run(code, expected, cpuTime=1.0){
     cpu_time_limit: cpuTime,
     wall_time_limit: Math.max(2.0, cpuTime + 1.5),
 
-    // ✅ key change: disable warnings + fix language standard
-    compiler_options: "-std=c++20 -w"
+    // ✅ FIX: Judge0 CE here doesn't accept -std=c++20. Use gnu++17 (or gnu++2a if you prefer).
+    compiler_options: "-std=gnu++17 -w"
   };
 
   const r = await fetch(API + "/submissions?wait=true&base64_encoded=false", {
@@ -108,12 +108,19 @@ async function run(code, expected, cpuTime=1.0){
 }
 
 const challenges = [
-  { id: 1, title: "Comma operator in if-condition", expected: "", cpu: 1.0,
+  // ✅ Updated #1 to have clear wrong/correct outputs and match your "0,1 vs 0.1" idea.
+  // Buggy (comma operator): prints "wrong"
+  // Fixed (0.1): prints "correct" (because v=2)
+  { id: 1, title: "Comma operator vs decimal point (0,1 vs 0.1)", expected: "correct\n", cpu: 1.0,
     starter: `#include <cstdio>
 int main(){
   int v = 2;
+
   if (v == 0,1)
-    std::printf("run\\n");
+    std::printf("wrong\\n");
+  else
+    std::printf("correct\\n");
+
   return 0;
 }`},
 
@@ -261,7 +268,7 @@ async function evaluateAll(){
   document.getElementById("status").textContent = "Loading runtime…";
 
   await getCppLangId();
-  document.getElementById("status").textContent = `Running (C++ id=${CPP_ID}, -std=c++20 -w)…`;
+  document.getElementById("status").textContent = `Running (C++ id=${CPP_ID}, -std=gnu++17 -w)…`;
 
   const email = (document.getElementById("email").value || "").trim() || null;
   const started = new Date().toISOString();
@@ -323,7 +330,7 @@ ${msg || "(none)"}
     finished_at: new Date().toISOString(),
     judge0_base: API,
     cpp_language_id: CPP_ID,
-    compiler_options: "-std=c++20 -w",
+    compiler_options: "-std=gnu++17 -w",
     score: `${pass}/${challenges.length}`,
     results
   };
