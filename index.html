@@ -53,9 +53,9 @@ small{ font-size:12px; color:#777; }
   <div class="muted">Fix each snippet so output matches expected. Then press <b>Submit</b>. (Runs on Judge0 CE.)</div>
 
   <div class="top">
-    <input id="email" type="email" placeholder="candidate email (optional)"/>
+    <input id="email" type="email" placeholder="candidate email (optional)" style="display:none"/>
     <button id="submitBtn" onclick="evaluateAll()">Submit</button>
-    <button onclick="copyJSON()">Copy JSON</button>
+    <button onclick="copyJSON()" style="display:none">Copy JSON</button>
     <span id="score" class="pill">Score: 0/10</span>
     <span id="status" class="muted"></span>
   </div>
