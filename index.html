@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>C++ Bug-Fix Hiring Challenge</title>
+  <style>
+    :root { --b:#ddd; --bg:#0b1020; --fg:#e7e7e7; }
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial; margin: 20px; }
+    .wrap { max-width: 1050px; margin: 0 auto; }
+    h1 { margin: 0 0 6px; }
+    .muted { color:#555; }
+    .top { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin: 12px 0 16px; }
+    input, button { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--b); }
+    input[type=email]{ width:min(380px,100%); }
+    button { cursor:pointer; }
+    .pill { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--b); font-size: 12px; }
+    .ok { background:#eaffea; border-color:#77cc77; }
+    .bad { background:#ffecec; border-color:#dd6666; }
+    .card { border:1px solid var(--b); border-radius:14px; padding:14px; margin:12px 0; }
+    .row { display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; }
+    textarea {
+      width:100%; min-height: 180px; resize: vertical;
+      font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      font-size: 13px; padding: 12px; border-radius: 12px; border: 1px solid var(--b);
+    }
+    .expect { font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size: 12px; }
+    .log { white-space: pre-wrap; background: var(--bg); color: var(--fg); padding: 12px; border-radius: 14px; }
+    details { margin-top:10px; }
+    summary { cursor:pointer; }
+    .tiny { font-size: 12px; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 860px){ .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>C++ Bug-Fix Mini Challenge</h1>
+  <div class="muted">
+    Fix each snippet so the program matches the expected output. Then hit <b>Submit</b>.
+    (Evaluation is done by compiling/running in Judge0 CE.)
+  </div>
+
+  <div class="top">
+    <input id="email" type="email" placeholder="candidate email (optional)"/>
+    <button id="submitBtn">Submit (Run all)</button>
+    <button id="copyBtn">Copy result JSON</button>
+    <span id="score" class="pill">Score: 0/10</span>
+    <span id="status" class="muted tiny"></span>
+  </div>
+
+  <div id="challenges"></div>
+
+  <h3>Results</h3>
+  <div id="results" class="log">Submit to run…</div>
+  <div class="tiny muted" style="margin-top:8px;">
+    Note: This calls a public execution API. If that API is down or rate-limited, results won’t come back.
+  </div>
+</div>
+
+<script>
+  const JUDGE0 = "https://ce.judge0.com"; // Judge0 CE API docs: https://ce.judge0.com :contentReference[oaicite:1]{index=1}
+  let CPP_LANG_ID = 54; // fallback if language lookup fails
+
+  const $ = (id) => document.getElementById(id);
+
+  function normOut(s) {
+    // Judge0 compares exact; we keep exact expected, but for UI also show trimmed view.
+    return (s ?? "");
+  }
+
+  async function fetchCppLanguageId() {
+    // Try to pick the newest-looking C++ (GCC) entry
+    const r = await fetch(`${JUDGE0}/languages`);
+    if (!r.ok) throw new Error(`GET /languages failed: HTTP ${r.status}`);
+    const langs = await r.json();
+    const cpp = langs
+      .filter(x => typeof x.name === "string" && x.name.toLowerCase().includes("c++"))
+      .sort((a,b) => (b.name.length - a.name.length)); // crude but ok
+    if (cpp[0]?.id) return cpp[0].id;
+    throw new Error("No C++ language found");
+  }
+
+  async function runOnJudge0({ source, expected, cpuTime=1.0 }) {
+    const body = {
+      source_code: source,
+      language_id: CPP_LANG_ID,
+      expected_output: expected,               // Judge0 will mark Accepted/Wrong Answer
+      redirect_stderr_to_stdout: true,
+      cpu_time_limit: cpuTime,
+      wall_time_limit: Math.max(2.0, cpuTime + 1.5),
+      enable_network: false
+    };
+
+    const r = await fetch(`${JUDGE0}/submissions?wait=true&base64_encoded=false`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    if (!r.ok) {
+      const t = await r.text().catch(()=> "");
+      throw new Error(`POST /submissions failed: HTTP ${r.status}\n${t}`);
+    }
+    return await r.json();
+  }
+
+  const challenges = [
+    {
+      id: 1,
+      title: "Comma operator in if-condition",
+      expected: "", // should print nothing when v=2
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+
+int main() {
+  int v = 2;
+  if (v == 0,1)
+      std::printf("run\\n");
+  return 0;
+}
+`
+    },
+    {
+      id: 2,
+      title: "Pointer compare vs string content",
+      expected: "same\n",
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+#include <cstring>
+
+int main() {
+  char buf[] = "hi";
+  const char* s = buf;
+  if (s == "hi")
+      std::printf("same\\n");
+  return 0;
+}
+`
+    },
+    {
+      id: 3,
+      title: "Chained comparisons",
+      expected: "", // x=42 should not be in range
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+
+int main() {
+  int x = 42;
+  if (0 < x < 10)
+      std::printf("in range\\n");
+  return 0;
+}
+`
+    },
+    {
+      id: 4,
+      title: "Assignment instead of comparison",
+      expected: "", // ok=0 should not print
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+
+int main() {
+  int ok = 0;
+  if (ok = 1)
+      std::printf("ok\\n");
+  return 0;
+}
+`
+    },
+    {
+      id: 5,
+      title: "Missing braces",
+      expected: "", // isAdmin=0 => should print nothing
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+
+int main() {
+  int isAdmin = 0;
+  if (isAdmin)
+      std::printf("allowed\\n");
+      std::printf("logged\\n");
+  return 0;
+}
+`
+    },
+    {
+      id: 6,
+      title: "sizeof(pointer) vs logical size",
+      expected: "100\n",
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+#include <cstdlib>
+
+int main() {
+  size_t n = 100;
+  int* a = (int*)std::malloc(n * sizeof(int));
+  std::printf("%zu\\n", sizeof(a));
+  std::free(a);
+  return 0;
+}
+`
+    },
+    {
+      id: 7,
+      title: "memset on int array",
+      expected: "1\n",
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+#include <cstring>
+
+int main() {
+  int arr[4];
+  std::memset(arr, 1, sizeof(arr));
+  std::printf("%d\\n", arr[0]);
+  return 0;
+}
+`
+    },
+    {
+      id: 8,
+      title: "Returning pointer to local (dangling)",
+      expected: "42\n",
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+#include <cstring>
+
+int* f(void) {
+  int x = 42;
+  return &x;
+}
+
+// try to disturb the stack a bit
+static void stomp_stack() {
+  volatile char junk[4096];
+  std::memset((void*)junk, 7, sizeof(junk));
+}
+
+int main() {
+  int* p = f();
+  stomp_stack();
+  std::printf("%d\\n", *p);
+  return 0;
+}
+`
+    },
+    {
+      id: 9,
+      title: "Removing while iterating (skipped element)",
+      expected: "0\n",
+      cpuTime: 1.0,
+      starter: `#include <cstdio>
+
+int main() {
+  int v[] = {2,4,6,8};
+  int n = 4;
+
+  for (int i = 0; i < n; i++) {
+      if (v[i] % 2 == 0) {
+          for (int j = i; j < n - 1; j++)
+              v[j] = v[j + 1];
+          n--;     // shrinks
+          i++;     // bug: skips the element shifted into i
+      }
+  }
+
+  std::printf("%d\\n", n);
+  return 0;
+}
+`
+    },
+    {
+      id: 10,
+      title: "Reverse loop with size_t underflow",
+      expected: "3\n2\n1\n",
+      cpuTime: 0.7,
+      starter: `#include <cstdio>
+#include <cstddef>
+
+int main() {
+  int v[] = {1,2,3};
+  size_t n = sizeof(v) / sizeof(v[0]);
+
+  for (size_t i = n - 1; i >= 0; --i)
+      std::printf("%d\\n", v[i]);
+
+  return 0;
+}
+`
+    },
+  ];
+
+  function escapeHtml(s) {
+    return (s || "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  }
+
+  function render() {
+    const root = $("challenges");
+    root.innerHTML = "";
+    for (const ch of challenges) {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <div class="row">
+          <div><b>${ch.id}.)</b> ${escapeHtml(ch.title)}</div>
+          <span id="badge-${ch.id}" class="pill">Not run</span>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <div class="muted tiny">Your code:</div>
+            <textarea id="code-${ch.id}" spellcheck="false">${escapeHtml(ch.starter)}</textarea>
+          </div>
+          <div>
+            <div class="muted tiny">Expected output:</div>
+            <div class="expect log" id="exp-${ch.id}">${escapeHtml(ch.expected === "" ? "(empty output)" : ch.expected)}</div>
+            <details>
+              <summary class="tiny muted">Show last run output / errors</summary>
+              <div class="log tiny" id="out-${ch.id}">—</div>
+            </details>
+          </div>
+        </div>
+      `;
+      root.appendChild(div);
+    }
+  }
+
+  function setBadge(id, ok, text) {
+    const b = $(`badge-${id}`);
+    b.textContent = text;
+    b.className = "pill " + (ok ? "ok" : "bad");
+  }
+
+  async function evaluateAll() {
+    $("status").textContent = "Looking up C++ runtime…";
+    try {
+      CPP_LANG_ID = await fetchCppLanguageId();
+    } catch (e) {
+      // fallback is fine
+    }
+
+    const email = ($("email").value || "").trim() || null;
+    const started = new Date().toISOString();
+
+    $("status").textContent = `Running 10 programs (C++ language_id=${CPP_LANG_ID})…`;
+    $("submitBtn").disabled = true;
+
+    const results = [];
+    let pass = 0;
+
+    for (const ch of challenges) {
+      const code = $(`code-${ch.id}`).value || "";
+      setBadge(ch.id, false, "Running…");
+      $(`out-${ch.id}`).textContent = "Running…";
+
+      try {
+        const res = await runOnJudge0({ source: code, expected: normOut(ch.expected), cpuTime: ch.cpuTime });
+
+        const status = res?.status?.description || `status_id=${res?.status_id}`;
+        const stdout = (res.stdout ?? "");
+        const compileOut = (res.compile_output ?? "");
+        const msg = (res.message ?? "");
+        const time = res.time ?? "";
+        const mem = res.memory ?? "";
+
+        const ok = status.toLowerCase() === "accepted";
+        if (ok) pass++;
+
+        const detail =
+`Status: ${status}
+Time: ${time}s   Memory: ${mem} KB
+
+--- stdout ---
+${stdout || "(empty)"}
+
+--- compiler / runtime output ---
+${compileOut || "(none)"}
+
+--- message ---
+${msg || "(none)"}
+`;
+        $(`out-${ch.id}`).textContent = detail;
+        setBadge(ch.id, ok, ok ? "PASS" : "FAIL");
+
+        results.push({
+          id: ch.id,
+          title: ch.title,
+          ok,
+          status,
+          stdout,
+          compile_output: compileOut,
+          message: msg,
+          time,
+          memory_kb: mem
+        });
+
+      } catch (err) {
+        const detail = `Request failed:\n${String(err?.message || err)}`;
+        $(`out-${ch.id}`).textContent = detail;
+        setBadge(ch.id, false, "ERROR");
+        results.push({ id: ch.id, title: ch.title, ok:false, status:"ERROR", error:String(err?.message || err) });
+      }
+    }
+
+    const payload = {
+      email,
+      started_at: started,
+      finished_at: new Date().toISOString(),
+      judge0_base: JUDGE0,
+      cpp_language_id: CPP_LANG_ID,
+      score: `${pass}/${challenges.length}`,
+      results
+    };
+
+    $("score").textContent = `Score: ${pass}/${challenges.length}`;
+    $("results").textContent = JSON.stringify(payload, null, 2);
+    window.__LAST_PAYLOAD__ = payload;
+
+    $("status").textContent = "Done.";
+    $("submitBtn").disabled = false;
+  }
+
+  function copyJSON() {
+    const txt = JSON.stringify(window.__LAST_PAYLOAD__ || {}, null, 2);
+    navigator.clipboard.writeText(txt);
+  }
+
+  $("submitBtn").addEventListener("click", evaluateAll);
+  $("copyBtn").addEventListener("click", copyJSON);
+
+  render();
+</script>
+</body>
+</html>
